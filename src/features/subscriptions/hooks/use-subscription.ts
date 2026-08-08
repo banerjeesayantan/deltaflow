@@ -8,12 +8,13 @@ export const useSubscription = () => {
       const { data } = await authClient.customer.state();
       return data;
     },
+    refetchOnWindowFocus: false,
+    retry: false,
   });
 };
 
 export const useHasActiveSubscription = () => {
-  const { data: customerState, isLoading, ...rest } = 
-    useSubscription();
+  const { data: customerState, isLoading, ...rest } = useSubscription();
 
   const hasActiveSubscription =
     customerState?.activeSubscriptions &&

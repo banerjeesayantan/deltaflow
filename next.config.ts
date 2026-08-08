@@ -3,6 +3,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   devIndicators: false,
+  images: {
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+  },
   async redirects() {
     return [
       {
@@ -20,7 +24,7 @@ export default withSentryConfig(nextConfig, {
 
   org: "enra-doo",
 
-  project: "nodebase",
+  project: "deltaflow",
 
   // Only print logs for uploading source maps in CI
   silent: !process.env.CI,

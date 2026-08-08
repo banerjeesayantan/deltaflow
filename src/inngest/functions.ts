@@ -15,22 +15,9 @@ import { discordChannel } from "./channels/discord";
 import { slackChannel } from "./channels/slack";
 
 export const executeWorkflow = inngest.createFunction(
-  { 
+  {
     id: "execute-workflow",
     retries: process.env.NODE_ENV === "production" ? 3 : 0,
-    onFailure: async ({ event, step }) => {
-      return prisma.execution.update({
-        where: { inngestEventId: event.data.event.id },
-        data: {
-          status: ExecutionStatus.FAILED,
-          error: event.data.error.message,
-          errorStack: event.data.error.stack,
-        },
-      });
-    },
-  },
-  { 
-    event: "workflows/execute.workflow",
     channels: [
       httpRequestChannel(),
       manualTriggerChannel(),
@@ -42,7 +29,18 @@ export const executeWorkflow = inngest.createFunction(
       discordChannel(),
       slackChannel(),
     ],
+    onFailure: async ({ event, step }) => {
+      return prisma.execution.update({
+        where: { inngestEventId: event.data.event.id },
+        data: {
+          status: ExecutionStatus.FAILED,
+          error: event.data.error.message,
+          errorStack: event.data.error.stack,
+        },
+      });
+    },
   },
+  { event: "workflows/execute.workflow" },
   async ({ event, step, publish }) => {
     const inngestEventId = event.id;
     const workflowId = event.data.workflowId;
@@ -83,10 +81,8 @@ export const executeWorkflow = inngest.createFunction(
       return workflow.userId;
     });
 
-    // Initialize context with any initial data from the trigger
     let context = event.data.initialData || {};
 
-    // Execute each node
     for (const node of sortedNodes) {
       const executor = getExecutor(node.type as NodeType);
       context = await executor({
@@ -107,7 +103,7 @@ export const executeWorkflow = inngest.createFunction(
           completedAt: new Date(),
           output: context,
         },
-      })
+      });
     });
 
     return {

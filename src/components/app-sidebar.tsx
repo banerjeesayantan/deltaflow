@@ -29,23 +29,11 @@ const menuItems = [
   {
     title: "Main",
     items: [
-      {
-        title: "Workflows",
-        icon: FolderOpenIcon,
-        url: "/workflows",
-      },
-      {
-        title: "Credentials",
-        icon: KeyIcon,
-        url: "/credentials",
-      },
-      {
-        title: "Executions",
-        icon: HistoryIcon,
-        url: "/executions",
-      },
+      { title: "Workflows", icon: FolderOpenIcon, url: "/workflows" },
+      { title: "Credentials", icon: KeyIcon, url: "/credentials" },
+      { title: "Executions", icon: HistoryIcon, url: "/executions" },
     ],
-  }
+  },
 ];
 
 export const AppSidebar = () => {
@@ -55,14 +43,17 @@ export const AppSidebar = () => {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader>
+      <SidebarHeader className="p-4">
         <SidebarMenuItem>
-          <SidebarMenuButton asChild className="gap-x-4 h-10 px-4">
-            <Link href="/" prefetch>
-              <Image src="/logos/logo.svg" alt="Nodebase" width={30} height={30} />
-              <span className="font-semibold text-sm">Nodebase</span>
-            </Link>
-          </SidebarMenuButton>
+          <Link href="/" prefetch className="flex justify-center">
+            <Image
+              src="/logos/logo.svg"
+              alt="DeltaFlow"
+              width={1922}
+              height={449}
+              className="w-[85%] h-auto rounded-md"
+            />
+          </Link>
         </SidebarMenuItem>
       </SidebarHeader>
       <SidebarContent>
@@ -101,7 +92,7 @@ export const AppSidebar = () => {
               <SidebarMenuButton
                 tooltip="Upgade to Pro"
                 className="gap-x-4 h-10 px-4"
-                onClick={() => authClient.checkout({ slug: "pro" })}
+                onClick={() => authClient.checkout({ slug: "pro-plan" })}
               >
                 <StarIcon className="h-4 w-4" />
                 <span>Upgrade to Pro</span>
@@ -122,13 +113,15 @@ export const AppSidebar = () => {
             <SidebarMenuButton
               tooltip="Sign out"
               className="gap-x-4 h-10 px-4"
-              onClick={() => authClient.signOut({
-                fetchOptions: {
-                  onSuccess: () => {
-                    router.push("/login");
+              onClick={() =>
+                authClient.signOut({
+                  fetchOptions: {
+                    onSuccess: () => {
+                      router.push("/login");
+                    },
                   },
-                },
-              })}
+                })
+              }
             >
               <LogOutIcon className="h-4 w-4" />
               <span>Sign out</span>
