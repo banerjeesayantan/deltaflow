@@ -1,12 +1,12 @@
 import { auth } from '@/lib/auth';
-import { polarClient } from '@/lib/polar';
+import { getUserPlan } from '@/lib/entitlements';
 import { initTRPC, TRPCError } from '@trpc/server';
 import { headers } from 'next/headers';
 import { cache } from 'react';
 import superjson from "superjson"
 
 export const createTRPCContext = cache(async () => {
-  return { userId: 'user_123' };
+  return {};
 });
 
 const t = initTRPC.create({
@@ -32,27 +32,17 @@ export const protectedProcedure = baseProcedure.use(async ({ ctx, next }) => {
   return next({ ctx: { ...ctx, auth: session } });
 });
 
-export const premiumProcedure = protectedProcedure.use(
+/**
+ * Authenticated user + real plan attached to context.
+ * Does NOT gate access by itself — Free is a legitimate, usable plan.
+ * Each router enforces its own limit using ctx.plan, via the
+ * assert*Entitlement helpers in @/lib/entitlements.
+ *
+ * baseProcedure -> protectedProcedure -> entitledProcedure -> specific check
+ */
+export const entitledProcedure = protectedProcedure.use(
   async ({ ctx, next }) => {
-    // Skip subscription check in development
-    if (process.env.NODE_ENV === "development") {
-      return next({ ctx });
-    }
-
-    const customer = await polarClient.customers.getStateExternal({
-      externalId: ctx.auth.user.id,
-    });
-
-    if (
-      !customer.activeSubscriptions ||
-      customer.activeSubscriptions.length === 0
-    ) {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: "Active subscription required",
-      });
-    }
-
-    return next({ ctx: { ...ctx, customer } });
+    const plan = await getUserPlan(ctx.auth.user.id);
+    return next({ ctx: { ...ctx, plan } });
   },
 );

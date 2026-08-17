@@ -1,12 +1,14 @@
 import prisma from "@/lib/db";
-import { createTRPCRouter, premiumProcedure, protectedProcedure } from "@/trpc/init";
+import { createTRPCRouter, entitledProcedure, protectedProcedure } from "@/trpc/init";
 import z from "zod";
 import { PAGINATION } from "@/config/constants";
 import { CredentialType } from "@/generated/prisma";
 import { encrypt } from "@/lib/encryption";
+import { TRPCError } from "@trpc/server";
+import { assertCredentialEntitlement } from "@/lib/entitlements";
 
 export const credentialsRouter = createTRPCRouter({
-  create: premiumProcedure
+  create: entitledProcedure
     .input(
       z.object({
         name: z.string().min(1, "Name is required"),
@@ -14,7 +16,16 @@ export const credentialsRouter = createTRPCRouter({
         value: z.string().min(1, "Value is required")
       })
     )
-    .mutation(({ ctx, input }) => {
+    .mutation(async ({ ctx, input }) => {
+      try {
+        await assertCredentialEntitlement(ctx.auth.user.id, ctx.plan);
+      } catch (error) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: error instanceof Error ? error.message : "Credential limit reached",
+        });
+      }
+
       const { name, value, type } = input;
 
       return prisma.credential.create({

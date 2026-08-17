@@ -2,6 +2,8 @@ import { Connection, Node } from "@/generated/prisma";
 import toposort from "toposort";
 import { inngest } from "./client";
 import { createId } from "@paralleldrive/cuid2";
+import prisma from "@/lib/db";
+import { getUserPlan, tryConsumeExecution } from "@/lib/entitlements";
 
 export const topologicalSort = (
   nodes: Node[],
@@ -49,10 +51,39 @@ export const topologicalSort = (
   return sortedNodeIds.map((id) => nodeMap.get(id)!).filter(Boolean);
 };
 
+/**
+ * Thrown when a workflow can't run because its owner is over their
+ * plan's monthly execution quota. Callers (tRPC router, webhook
+ * routes) catch this and respond appropriately for their context.
+ */
+export class ExecutionLimitError extends Error {}
+
+/**
+ * The single, shared entry point for starting a workflow execution —
+ * used by the manual "Run" button (via workflowsRouter.execute) AND
+ * both webhook routes (Google Form, Stripe). Putting the quota check
+ * HERE, instead of in each caller, means every trigger path is
+ * protected automatically — no future trigger type can accidentally
+ * forget to enforce it.
+ */
 export const sendWorkflowExecution = async (data: {
   workflowId: string;
   [key: string]: any;
 }) => {
+  const workflow = await prisma.workflow.findUniqueOrThrow({
+    where: { id: data.workflowId },
+    select: { userId: true },
+  });
+
+  const plan = await getUserPlan(workflow.userId);
+  const allowed = await tryConsumeExecution(workflow.userId, plan);
+
+  if (!allowed) {
+    throw new ExecutionLimitError(
+      `Monthly execution limit reached on the ${plan} plan.`
+    );
+  }
+
   return inngest.send({
     name: "workflows/execute.workflow",
     data,

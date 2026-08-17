@@ -1,15 +1,21 @@
 import { generateSlug } from "random-word-slugs";
 import prisma from "@/lib/db";
 import type { Node, Edge } from "@xyflow/react";
-import { createTRPCRouter, premiumProcedure, protectedProcedure } from "@/trpc/init";
+import { createTRPCRouter, entitledProcedure, protectedProcedure } from "@/trpc/init";
 import z from "zod";
 import { TRPCError } from "@trpc/server";
 import { PAGINATION } from "@/config/constants";
 import { NodeType } from "@/generated/prisma";
 import { inngest } from "@/inngest/client";
-import { sendWorkflowExecution } from "@/inngest/utils";
+import { sendWorkflowExecution, ExecutionLimitError } from "@/inngest/utils";
+import { assertWorkflowEntitlement } from "@/lib/entitlements";
 
 export const workflowsRouter = createTRPCRouter({
+  // Was protectedProcedure with NO quota check at all. Quota is now
+  // enforced centrally inside sendWorkflowExecution() (see
+  // src/inngest/utils.ts) — the same shared entry point the Google
+  // Form and Stripe webhooks also call — so it's protected here
+  // without duplicating the check.
   execute: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input, ctx }) => {
@@ -20,13 +26,32 @@ export const workflowsRouter = createTRPCRouter({
         },
       });
 
-      await sendWorkflowExecution({
-        workflowId: input.id,
-      });
+      try {
+        await sendWorkflowExecution({
+          workflowId: input.id,
+        });
+      } catch (error) {
+        if (error instanceof ExecutionLimitError) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: error.message,
+          });
+        }
+        throw error;
+      }
 
       return workflow;
     }),
-  create: premiumProcedure.mutation(({ ctx }) => {
+  create: entitledProcedure.mutation(async ({ ctx }) => {
+    try {
+      await assertWorkflowEntitlement(ctx.auth.user.id, ctx.plan);
+    } catch (error) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: error instanceof Error ? error.message : "Workflow limit reached",
+      });
+    }
+
     return prisma.workflow.create({
       data: {
         name: generateSlug(3),
@@ -80,14 +105,11 @@ export const workflowsRouter = createTRPCRouter({
         where: { id, userId: ctx.auth.user.id },
       });
 
-      // Transaction to ensure consistency
       return await prisma.$transaction(async (tx) => {
-        // Delete existing nodes and connections (cascade deletes connections)
         await tx.node.deleteMany({
           where: { workflowId: id },
         });
 
-        // Create nodes
         await tx.node.createMany({
           data: nodes.map((node) => ({
             id: node.id,
@@ -99,7 +121,6 @@ export const workflowsRouter = createTRPCRouter({
           })),
         });
 
-        // Create connections
         await tx.connection.createMany({
           data: edges.map((edge) => ({
             workflowId: id,
@@ -110,7 +131,6 @@ export const workflowsRouter = createTRPCRouter({
           })),
         });
 
-        // Update workflow's updateAt timestamp
         await tx.workflow.update({
           where: { id },
           data: { updatedAt: new Date() },
@@ -142,7 +162,6 @@ export const workflowsRouter = createTRPCRouter({
         });
       }
 
-      // Transform server nodes to react-flow compatible nodes
       const nodes: Node[] = workflow.nodes.map((node) => ({
         id: node.id,
         type: node.type,
@@ -150,7 +169,6 @@ export const workflowsRouter = createTRPCRouter({
         data: (node.data as Record<string, unknown>) || {},
       }));
 
-      // Transform server connections to react-flow compatible edges
       const edges: Edge[] = workflow.connections.map((connection) => ({
         id: connection.id,
         source: connection.fromNodeId,

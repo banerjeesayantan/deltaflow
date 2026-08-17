@@ -185,3 +185,16 @@ model Execution {
 
   output Json?
 }
+
+// Tracks how many workflow executions each user has consumed within
+// a given month ("YYYY-MM"), used for atomic, race-condition-safe
+// plan quota enforcement in src/lib/entitlements.ts.
+model UsageCounter {
+  id     String @id @default(cuid())
+  userId String
+  period String // "YYYY-MM", e.g. "2026-08"
+  count  Int    @default(0)
+
+  @@unique([userId, period])
+  @@map("usage_counter")
+}

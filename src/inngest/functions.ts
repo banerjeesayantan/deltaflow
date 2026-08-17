@@ -4,7 +4,14 @@ import prisma from "@/lib/db";
 import { topologicalSort } from "./utils";
 import { ExecutionStatus, NodeType } from "@/generated/prisma";
 import { getExecutor } from "@/features/executions/lib/executor-registry";
-import { assertExecutionEntitlement } from "@/lib/entitlements";
+
+// Execution quota is enforced centrally inside sendWorkflowExecution()
+// (see src/inngest/utils.ts) — the single shared entry point used by
+// both the manual "Run" button (via workflowsRouter.execute) and the
+// webhook routes (Google Form, Stripe), which call it directly and do
+// NOT go through the tRPC mutation. By the time this function runs,
+// quota has already been checked and consumed — no separate check
+// needed here, and adding one would double-count against the quota.
 
 export const executeWorkflow = inngest.createFunction(
   {
@@ -39,10 +46,6 @@ export const executeWorkflow = inngest.createFunction(
       });
 
       return workflow.userId;
-    });
-
-    await step.run("check-entitlement", async () => {
-      await assertExecutionEntitlement(userId);
     });
 
     await step.run("create-execution", async () => {
