@@ -9,6 +9,8 @@ import { NodeType } from "@/generated/prisma";
 import { inngest } from "@/inngest/client";
 import { sendWorkflowExecution, ExecutionLimitError } from "@/inngest/utils";
 import { assertWorkflowEntitlement } from "@/lib/entitlements";
+import { randomBytes } from "crypto";
+import { encrypt, decrypt } from "@/lib/encryption";
 
 export const workflowsRouter = createTRPCRouter({
   // Was protectedProcedure with NO quota check at all. Quota is now
@@ -239,4 +241,41 @@ export const workflowsRouter = createTRPCRouter({
         hasPreviousPage,
       };
     }),
+  getWebhookSecret: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const workflow = await prisma.workflow.findUnique({
+        where: { id: input.id, userId: ctx.auth.user.id },
+      });
+
+      if (!workflow) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Workflow not found" });
+      }
+
+      if (workflow.webhookSecret) {
+        return { secret: decrypt(workflow.webhookSecret) };
+      }
+
+      const rawSecret = randomBytes(24).toString("hex");
+      const encrypted = encrypt(rawSecret);
+
+      const result = await prisma.workflow.updateMany({
+        where: { id: input.id, webhookSecret: null },
+        data: { webhookSecret: encrypted },
+      });
+
+      if (result.count === 1) {
+        return { secret: rawSecret };
+      }
+
+      const current = await prisma.workflow.findUniqueOrThrow({
+        where: { id: input.id },
+        select: { webhookSecret: true },
+      });
+
+      return { secret: decrypt(current.webhookSecret!) };
+    }),
 });
+
+
+

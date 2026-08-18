@@ -1,3 +1,5 @@
+import prisma from "@/lib/db";
+import { decrypt } from "@/lib/encryption";
 import { sendWorkflowExecution, ExecutionLimitError } from "@/inngest/utils";
 import { type NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
@@ -5,32 +7,56 @@ import { timingSafeEqual } from "crypto";
 /**
  * Google Forms has no built-in request-signing the way Stripe does —
  * there's no equivalent of a stripe-signature header to verify. The
- * standard fix is a shared secret: your Google Apps Script (the
- * thing that actually POSTs here on form submit) sends a secret
- * token that only it and this server know, and we reject anything
- * that doesn't match.
+ * fix is a shared secret, scoped per-workflow: your Apps Script sends
+ * the secret for THAT specific workflow, and we look up and compare
+ * against THAT workflow's stored, encrypted secret — not a single
+ * global one. This means a leaked token for Workflow A can never be
+ * replayed against Workflow B.
  *
- * Set GOOGLE_FORM_WEBHOOK_SECRET in your .env, and configure your
- * Apps Script to send the same value as an "x-webhook-secret" header.
+ * Wrapped in try/catch: if decrypt() ever throws (corrupted stored
+ * value, encryption key mismatch, etc.), that's treated as "not
+ * authorized" rather than an unhandled crash.
  */
-function isAuthorized(request: NextRequest): boolean {
-  const expected = process.env.GOOGLE_FORM_WEBHOOK_SECRET;
-  const provided = request.headers.get("x-webhook-secret");
+async function isAuthorized(workflowId: string, request: NextRequest): Promise<boolean> {
+  try {
+    const provided = request.headers.get("x-webhook-secret");
+    if (!provided) return false;
 
-  if (!expected || !provided) return false;
+    const workflow = await prisma.workflow.findUnique({
+      where: { id: workflowId },
+      select: { webhookSecret: true },
+    });
 
-  const expectedBuf = Buffer.from(expected);
-  const providedBuf = Buffer.from(provided);
+    if (!workflow?.webhookSecret) return false;
 
-  // Constant-time comparison — a plain === leaks timing information
-  // that could theoretically help an attacker guess the secret
-  // character by character.
-  if (expectedBuf.length !== providedBuf.length) return false;
-  return timingSafeEqual(expectedBuf, providedBuf);
+    const expected = decrypt(workflow.webhookSecret);
+
+    const expectedBuf = Buffer.from(expected);
+    const providedBuf = Buffer.from(provided);
+
+    // Constant-time comparison — a plain === leaks timing information
+    // that could theoretically help an attacker guess the secret
+    // character by character.
+    if (expectedBuf.length !== providedBuf.length) return false;
+    return timingSafeEqual(expectedBuf, providedBuf);
+  } catch (error) {
+    console.error("Google form webhook authorization error:", error);
+    return false;
+  }
 }
 
 export async function POST(request: NextRequest) {
-  if (!isAuthorized(request)) {
+  const url = new URL(request.url);
+  const workflowId = url.searchParams.get("workflowId");
+
+  if (!workflowId) {
+    return NextResponse.json(
+      { success: false, error: "Missing required query parameter: workflowId" },
+      { status: 400 },
+    );
+  }
+
+  if (!(await isAuthorized(workflowId, request))) {
     return NextResponse.json(
       { success: false, error: "Unauthorized" },
       { status: 401 },
@@ -38,16 +64,6 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const url = new URL(request.url);
-    const workflowId = url.searchParams.get("workflowId");
-
-    if (!workflowId) {
-      return NextResponse.json(
-        { success: false, error: "Missing required query parameter: workflowId" },
-        { status: 400 },
-      );
-    }
-
     const body = await request.json();
 
     const formData = {
@@ -81,4 +97,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

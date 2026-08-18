@@ -2,15 +2,15 @@
  * Builds the Google Apps Script text shown in the trigger dialog for
  * the user to copy into their form's Script editor.
  *
- * The x-webhook-secret value is intentionally left as a placeholder
- * here, not the real secret — this file runs in a "use client"
- * component (see dialog.tsx), so anything referenced here ends up in
- * the browser bundle. The actual GOOGLE_FORM_WEBHOOK_SECRET must stay
- * server-only (.env / Vercel env vars); the user pastes it in by hand
- * after copying this script, matching what the server in
- * src/app/api/webhooks/google-form/route.ts checks for.
+ * webhookSecret is now the real, workflow-specific secret, fetched
+ * via workflows.getWebhookSecret (ownership-checked, decrypted
+ * server-side) and passed in from dialog.tsx. Baking it directly into
+ * the generated script is intentional: the workflow owner needs their
+ * own secret to configure their own Apps Script, and this endpoint
+ * only ever returns the secret for a workflow the requester actually
+ * owns — same trust boundary as viewing a stored Credential value.
  */
-export function generateGoogleFormScript(webhookUrl: string): string {
+export function generateGoogleFormScript(webhookUrl: string, webhookSecret: string): string {
   return `function onFormSubmit(e) {
   const formResponse = e.response;
   const itemResponses = formResponse.getItemResponses();
@@ -36,7 +36,7 @@ export function generateGoogleFormScript(webhookUrl: string): string {
     contentType: "application/json",
     payload: JSON.stringify(formData),
     headers: {
-      "x-webhook-secret": "PASTE_YOUR_GOOGLE_FORM_WEBHOOK_SECRET_HERE"
+      "x-webhook-secret": "${webhookSecret}"
     }
   };
 

@@ -10,9 +10,11 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CopyIcon } from "lucide-react";
+import { CopyIcon, Loader2Icon } from "lucide-react";
 import { useParams } from "next/navigation";
+import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useTRPC } from "@/trpc/client";
 import { generateGoogleFormScript } from "./utils";
 
 interface Props {
@@ -26,11 +28,28 @@ export const GoogleFormTriggerDialog = ({
 }: Props) => {
   const params = useParams();
   const workflowId = params.workflowId as string;
+  const trpc = useTRPC();
 
-  // Construct the webhook URL
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
   const webhookUrl = 
     `${baseUrl}/api/webhooks/google-form?workflowId=${workflowId}`;
+
+  const getWebhookSecret = useMutation(
+    trpc.workflows.getWebhookSecret.mutationOptions({
+      onSuccess: async ({ secret }) => {
+        const script = generateGoogleFormScript(webhookUrl, secret);
+        try {
+          await navigator.clipboard.writeText(script);
+          toast.success("Script copied to clipboard");
+        } catch {
+          toast.error("Failed to copy Script to clipboard");
+        }
+      },
+      onError: () => {
+        toast.error("Failed to generate webhook secret");
+      },
+    })
+  );
 
   const copyToClipboard = async () => {
     try {
@@ -79,8 +98,7 @@ export const GoogleFormTriggerDialog = ({
             <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
               <li>Open your Google Form</li>
               <li>Click the three dots menu → Script editor</li>
-              <li>Copy and paste the script below</li>
-              <li>Replace the placeholder secret in the script with your own</li>
+              <li>Copy and paste the script below (your webhook secret is already included)</li>
               <li>Save and click "Triggers" → Add Trigger</li>
               <li>Choose: From form → On form submit → Save</li>
             </ol>
@@ -91,21 +109,18 @@ export const GoogleFormTriggerDialog = ({
             <Button
               type="button"
               variant="outline"
-              onClick={async () => {
-                const script = generateGoogleFormScript(webhookUrl);
-                try {
-                  await navigator.clipboard.writeText(script);
-                  toast.success("Script copied to clipboard");
-                } catch {
-                  toast.error("Failed to copy Script to clipboard");
-                }
-              }}
+              disabled={getWebhookSecret.isPending}
+              onClick={() => getWebhookSecret.mutate({ id: workflowId })}
             >
-              <CopyIcon className="size-4 mr-2" />
+              {getWebhookSecret.isPending ? (
+                <Loader2Icon className="size-4 mr-2 animate-spin" />
+              ) : (
+                <CopyIcon className="size-4 mr-2" />
+              )}
               Copy Google Apps Script
             </Button>
             <p className="text-xs text-muted-foreground">
-              This script includes your webhook URL and handles form submissions
+              This script includes your webhook URL and a secret unique to this workflow
             </p>
           </div>
 
