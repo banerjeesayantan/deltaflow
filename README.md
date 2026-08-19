@@ -198,21 +198,22 @@ The "textbook" way to coordinate many separate workers is usually something like
 
 
 
-## Chapter 6: What This Story Is Actually Proving
+Chapter 6 — What This Story Is Actually Proving
 
 If you're reading this as a hiring manager, here's the honest translation of everything above, mapped to what you're actually screening for:
-|---|---|
-| Found the Free-plan bug by testing production, not trusting dev | **Product ownership** — I don't assume "compiles" means "correct" |
-| Understood the *business* cost of the bug before fixing the *code* | **Product/business thinking** — I can reason about funnel impact, not just stack traces |
-| Diagnosed *why* one middleware answered two different questions | **Systems thinking** — separating authentication from authorization is a real architectural principle, not a buzzword |
-| Found and fixed a concurrency bug nobody asked me to look for | **Engineering depth** — I think about what happens under real, simultaneous load, not just the happy path |
-| Noticed the webhook routes bypassed my own quota system | **Security mindset** — "does the control I built actually cover every door" |
-| Chose two *different* fixes for Stripe vs. Google Forms | **Judgment** — recognizing that superficially similar problems can have genuinely different correct solutions |
-| Recognized horizontal scaling makes race conditions the default, not an edge case | **Distributed systems thinking** — understanding what changes when many independent workers replace one central server |
-| Solved a multi-worker coordination problem using Postgres instead of adding Redis | **Cost-conscious engineering** — knowing which infrastructure you don't need is as valuable as knowing which you do |
-| Wrote all of this down instead of hiding it | **Communication** — the ability to explain a technical decision to a non-technical stakeholder is a skill, not a formality |
 
-I'm not showing you a finished feature list. I'm showing you **how I think when something is wrong and I have to figure out why** — because that's the actual job, in any full-stack, product, or AI engineering role. The code is available to read. The reasoning is what I actually want you to remember.
+What happened in the story	What it demonstrates
+Found the Free-plan bug by testing production, not trusting dev	Product ownership — I don't assume "compiles" means "correct"
+Understood the business cost of the bug before fixing the code	Product/business thinking — I can reason about funnel impact, not just stack traces
+Diagnosed why one middleware answered two different questions	Systems thinking — separating authentication from authorization is a real architectural principle, not a buzzword
+Found and fixed a concurrency bug nobody asked me to look for	Engineering depth — I think about what happens under real, simultaneous load, not just the happy path
+Noticed the webhook routes bypassed my own quota system	Security mindset — "does the control I built actually cover every door"
+Chose two different fixes for Stripe vs. Google Forms	Judgment — recognizing that superficially similar problems can have genuinely different correct solutions
+Recognized horizontal scaling makes race conditions the default, not an edge case	Distributed systems thinking — understanding what changes when many independent workers replace one central server
+Solved a multi-worker coordination problem using Postgres instead of adding Redis	Cost-conscious engineering — knowing which infrastructure you don't need is as valuable as knowing which you do
+Wrote all of this down instead of hiding it	Communication — the ability to explain a technical decision to a non-technical stakeholder is a skill, not a formality
+
+I'm not showing you a finished feature list. I'm showing you how I think when something is wrong and I have to figure out why — because that's the actual job, in any full-stack, product, or AI engineering role. The code is available to read. The reasoning is what I actually want you to remember.
 
 ---
 
