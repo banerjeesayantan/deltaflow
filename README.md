@@ -323,17 +323,17 @@ Being specific about what's incomplete is more useful than pretending otherwise 
 
 ## Appendix: Tech Stack
 
-**Framework & Language** — Next.js 15 (App Router, Turbopack), TypeScript
-**API Layer** — tRPC, TanStack Query
-**Database** — PostgreSQL (Neon), Prisma ORM
-**Auth** — Better Auth (email/password, GitHub, Google OAuth)
-**Billing** — Polar (checkout, customer portal, subscription state)
-**Background Jobs** — Inngest (step functions, automatic retries, real-time pub/sub)
-**Workflow Canvas** — React Flow
-**AI Providers** — OpenAI, Anthropic, Google Gemini (via Vercel AI SDK)
-**Encryption** — Cryptr (credentials and per-workflow webhook secrets)
-**UI** — Tailwind CSS v4, shadcn/ui, Sonner, Lucide React
-**Monitoring** — Sentry
+- **Framework & Language** — Next.js 15 (App Router, Turbopack), TypeScript
+- **API Layer** — tRPC, TanStack Query
+- **Database** — PostgreSQL (Neon), Prisma ORM
+- **Auth** — Better Auth (email/password, GitHub, Google OAuth)
+- **Billing** — Polar (checkout, customer portal, subscription state)
+- **Background Jobs** — Inngest (step functions, automatic retries, real-time pub/sub)
+- **Workflow Canvas** — React Flow
+- **AI Providers** — OpenAI, Anthropic, Google Gemini (via Vercel AI SDK)
+- **Encryption** — Cryptr (credentials and per-workflow webhook secrets)
+- **UI** — Tailwind CSS v4, shadcn/ui, Sonner, Lucide React
+- **Monitoring** — Sentry
 
 ---
 
