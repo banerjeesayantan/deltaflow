@@ -5,7 +5,7 @@
 ### The $0 Bug: How a Free Plan Almost Broke My Own Business Model
 
 *A case study in what happens when "it compiles" isn't the same thing as "it works."*
-![DeltaFlow Workflows Dashboard](./docs/deltaflow-workflows-mockup.png)
+
 **[Live Demo](https://deltaflow-lime.vercel.app)** · **[Read the Bug](#chapter-1--the-3am-question)** · **[See the Fix](#chapter-3--the-atomic-fix)** · **[Scaling & Cost](#chapter-5--why-it-scales-without-costing-more)** · **[Skip to Tech Stack](#appendix-tech-stack)**
 
 ![Next.js](https://img.shields.io/badge/Next.js_15-000000?style=flat&logo=next.js&logoColor=white)
