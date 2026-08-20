@@ -6,6 +6,18 @@
 
 *A case study in what happens when "it compiles" isn't the same thing as "it works."*
 
+
+
+
+<img width="1920" height="1440" alt="Image" src="https://github.com/user-attachments/assets/e7e7c519-5596-41a7-888a-401c58bcdfd7" />
+
+<img width="1920" height="1080" alt="Image" src="https://github.com/user-attachments/assets/f0658788-5e75-4fa2-a76e-14fbf45f953f" />
+
+<img width="1920" height="1280" alt="Image" src="https://github.com/user-attachments/assets/38380952-4547-4cbe-bf8e-cc527903dd6e" />
+
+
+
+
 **[Live Demo](https://deltaflow-lime.vercel.app)** · **[Read the Bug](#chapter-1--the-3am-question)** · **[See the Fix](#chapter-3--the-atomic-fix)** · **[Scaling & Cost](#chapter-5--why-it-scales-without-costing-more)** · **[Skip to Tech Stack](#appendix-tech-stack)**
 
 ![Next.js](https://img.shields.io/badge/Next.js_15-000000?style=flat&logo=next.js&logoColor=white)
