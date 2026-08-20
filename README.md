@@ -11,7 +11,6 @@
 
 <img width="1920" height="1440" alt="Image" src="https://github.com/user-attachments/assets/e7e7c519-5596-41a7-888a-401c58bcdfd7" />
 
-<img width="1920" height="1080" alt="Image" src="https://github.com/user-attachments/assets/f0658788-5e75-4fa2-a76e-14fbf45f953f" />
 
 <img width="1920" height="1280" alt="Image" src="https://github.com/user-attachments/assets/38380952-4547-4cbe-bf8e-cc527903dd6e" />
 
